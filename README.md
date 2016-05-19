@@ -29,7 +29,7 @@ clang++ -Wall -std=c++14 switch_stacktraces.cpp  -c -O3 -funroll-loops  && ar rc
 ```
 
 ### Use
-Make sure you `#include <switch_stacktraces.h>` and you link against libbtresolve (i.e `-lbtresolve`). 
+Make sure you `#include <switch_stacktraces.h>` and you link against libbtresolve and libdl  (i.e `-lbtresolve -ldl`). 
 
 You can use it like so:
 
