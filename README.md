@@ -15,9 +15,8 @@ It hasn't been tested thoroughly (this is 2 day's worth of work), and it may not
 
 This is probably the fastest backtrace resolver  - at least from what I 'vee seen on GH, and one of the very few that does not rely on libBFD and other unwind libraries to accomplish the task. 
 
-`Switch` is our core library - hence the name. It comes from Matrix films (Switch was a character in the first movie). the various switch files found are from our Switch library repository, albeit stripped down so that only what's required for this project is there.
+`Switch` is our core library - hence the name. It comes from Matrix films (Switch was a character in the first movie). The various switch files found are from our Switch library repository, albeit stripped down so that only what's required for this project is there.
 
-Please note that use of this software is your responsibility; no warrantees, etc.
 
 ### Allocations
 Unfortunately, `backtrace()` and `abi::__cxa_demangle()` both may allocate memory(a few bytes each). In practice this will not be a problem, but because they are the only real functions that may interface with the allocator in the context of a signal handler function, I will probably implement alternatives to both that do not require any allocations and will update the repo when I do it. 
