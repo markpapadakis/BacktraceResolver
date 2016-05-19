@@ -5,7 +5,7 @@ It does not require any external libraries (in particular, binutils’ libBFD, w
 1. high performance
 2. No memory allocations(interface with the allocator)
 
-[We](http://phaistosnetworks/gr) need to generate backtraces very often and our previous implementation which was based on libBFD would often take unto 0.5 seconds to resolve a stack trace, which was very high. This resolver takes about 10ms to do that, so generating and resoling backtraces becomes very cheap. 
+[We](http://phaistosnetworks.gr) need to generate backtraces very often and our previous implementation which was based on libBFD would often take unto 0.5 seconds to resolve a stack trace, which was very high. This resolver takes about 10ms to do that, so generating and resoling backtraces becomes very cheap. 
 
 Furthermore, we need to generate and resolve backtraces in the execution context of signal handler. The problem with that is that if the handler's configured for e.g an abort signal, and e.g a SIGSEGV is raised within the allocator context (where a lock is usually held), and your resolver also needs to allocate memory, then it will deadlock because of the existing allocator lock. We have had a few such situations, and making sure the resolver does not allocate any memory at all become an important feature.
 
