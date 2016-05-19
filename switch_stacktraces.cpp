@@ -1987,20 +1987,6 @@ int32_t Switch::Stacktraces::captureFrames(void **pcs, size_t pcsCnt, simple_all
 	                                        SLog("LINE:", fsm.line, ", ", fsm.column, "\n");
 #endif
 
-#if 0
-					if (fsm.line == 2385)
-					{
-                                                if (auto fdIdx = fsm.file)
-                                                {
-                                                        auto it = fileTail;
-
-                                                        while (--fdIdx)
-                                                                it = it->next;
-
-							Print("LINE ", fsm.line, " ", it->name, "\n");
-						}
-					}
-#endif
 
                                         if (fsm.is_stmt && likely(fsm.address))
                                         {
