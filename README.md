@@ -1,11 +1,11 @@
 This is a very fast backtrace resolver for x86-64 architecture, although it probably works fine on i386, although it hasn’t been put to the test.
 
-It does not require any external libraries (in particular, binutils’ libBFD, which is what most alternative uses, including  the various binutils, gdb, etc). LibBFD is very powerful, but it always allocate memory and it’s not very fast, and this conflicts with the two main goals of this small project:
+It does not require any external non-standard libraries (in particular, binutils’ libBFD, which is what most alternative uses, including  the various binutils, gdb, etc). LibBFD is very powerful, but it always allocate memory and it’s not very fast, and this conflicts with the two main goals of this small project:
 
 1. high performance
 2. No memory allocations(interface with the allocator)
 
-[We](http://phaistosnetworks.gr) need to generate backtraces very often and our previous implementation which was based on libBFD would often take unto 0.5 seconds to resolve a stack trace, which was very high. This resolver takes about 10ms to do that, so generating and resoling backtraces becomes very cheap. 
+[We](http://phaistosnetworks.gr) need to generate backtraces very often and our previous implementation which was based on libBFD would often take upto 0.5 seconds to resolve a stack trace, which was very high. This resolver takes about 10ms to do that, so generating and resoling backtraces becomes very cheap. 
 
 Furthermore, we need to generate and resolve backtraces in the execution context of signal handler. The problem with that is that if the handler's configured for e.g an abort signal, and e.g a SIGSEGV is raised within the allocator context (where a lock is usually held), and your resolver also needs to allocate memory, then it will deadlock because of the existing allocator lock. We have had a few such situations, and making sure the resolver does not allocate any memory at all become an important feature.
 
