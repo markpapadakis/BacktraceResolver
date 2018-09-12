@@ -1,20 +1,20 @@
 This is very fast stacktraces resolver for x86-64(possibly working on i386 architecture as well, but hasn't been tested on it).
 This is a new major release that fixes all outstanding issues with the older implementation. It comes with a new design and implements new heuristics for even faster stacktraces generation.
 
-There are no dependencies on any non-standard, external libraries (e.g it does not depend on binutils libBFD, which is what most other such implementations rely on). LibBFD is very powerful, but it always allocated memory, and is not very fast.
+There are no dependencies on any non-standard, external libraries (e.g it does not depend on binutils libBFD, which is what most other such implementations rely on). LibBFD is very powerful, but it always allocates memory and is not very fast.
 
 For example, if you are interested in the first 4 frames and those frames belong to the same DSO, it can take as little as 400us to generate the stacktrace.
 
 # Features Include
 - High performance stacktraces generation
 - Accurate resolution: inline functions source code resolution works as expected
-- Very memory efficient: it does not allocate any memory on the heap, which makes it ideal for memory constrained environments and execution contexts(see below)
+- Very memory efficient: it does not allocate any memory on the heap, which makes it ideal for memory-constrained environments and execution contexts(see below)
 - Simple to use: it is implemented in a single module(stacktraces.cpp), and all you need to use is #include "stacktraces.h" and link against stacktraces.cpp
 
 # Memory Contraints
 While the resolver does not allocate memory on the heap, if you are going to use backtrace(), you should know that that it always allocates memory.
 There are alternative means to walking the stack (I mean to provide one such function soon -- it's a simple matter of looking into EBP, etc), but for now
-know that if you plan to use the resolver in the context of a signal hamdler that may not allocate memory, backtrace() may be unsuitable for that purpose.
+know that if you plan to use the resolver in the context of a signal handlerr that may not allocate memory, backtrace() may be unsuitable for that purpose.
 Furthermore, `abi::__cxa_demangle()` also allocates memory; an alternative will be implemented soon.
 
 
