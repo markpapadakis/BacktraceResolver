@@ -23,12 +23,12 @@
 #include <libdwarf/dwarf.h> // apt-get install -y libdwarf-dev
 
 static constexpr size_t K_max_compilation_units              = 512;
-static constexpr size_t K_max_compilation_units_tracked_refs = 128;
+static constexpr size_t K_max_compilation_units_tracked_refs = 512;
 static constexpr size_t K_max_tracked_frames                 = 512;
 static constexpr size_t K_max_dso_frames                     = 512;
-static constexpr size_t K_max_abbrev_spec_attrs              = 64;
+static constexpr size_t K_max_abbrev_spec_attrs              = 128;
 static constexpr size_t K_abbr_map_size                      = 128;
-static constexpr size_t K_max_compilation_unit_files         = 64;
+static constexpr size_t K_max_compilation_unit_files         = 512;
 static constexpr size_t K_max_tracked_dsos                   = 128;
 static constexpr size_t K_max_tracked_refs                   = 128;
 
@@ -333,7 +333,7 @@ int Switch::stacktrace(void **frames, const size_t depth, stack_frame *out, cons
 
                 str_view32 path_s8() const noexcept {
                         if (!path)
-                                return {"??", 2};
+                                return {};
                         else
                                 return {path, path_len};
                 }
@@ -556,6 +556,9 @@ l200:
                         dso_frames[dso_frames_size++] = {ptr, frame_index};
                         if (dso_frames_size == K_max_dso_frames) {
                                 // sanity
+#ifdef DBG_ST
+				SLog(ansifmt::bold, ansifmt::color_red, "Hit limit", ansifmt::reset, "\n");
+#endif
                                 break;
                         }
                 } while (++tri < frame_dso_size && frame_dso[tri].second == dso_i);
@@ -682,7 +685,12 @@ l200:
                                                                 abbreviation_spec_attrs[abbreviation_spec_attrs_cnt] = {.name = attr, .form = form};
                                                         }
                                                         ++abbreviation_spec_attrs_cnt;
+                                                } else {
+#ifdef DBG_ST
+                                                        SLog(ansifmt::bold, ansifmt::color_red, "Hit limit", ansifmt::reset, "\n");
+#endif
                                                 }
+
                                         }
 
                                         const size_t required = sizeof(abbrev_spec) + sizeof(attr_spec) * abbreviation_spec_attrs_cnt;
@@ -931,6 +939,9 @@ l200:
 
                                                                 if (stack_frames_capacity == tracked_refs_cnt || tracked_refs_cnt == K_max_tracked_refs) {
                                                                         // can't track no more
+#ifdef DBG_ST
+                                                                        SLog(ansifmt::bold, ansifmt::color_red, "Hit limit", ansifmt::reset, "\n");
+#endif
                                                                         goto l100;
                                                                 }
                                                         }
@@ -945,6 +956,9 @@ l200:
 
                         if (compilation_unit == K_max_compilation_units) {
                                 // Keep it sane
+#ifdef DBG_ST
+                                SLog(ansifmt::bold, ansifmt::color_red, "Hit limit", ansifmt::reset, "\n");
+#endif
                                 break;
                         }
                 }
@@ -1032,6 +1046,9 @@ l200:
 
                                         if (cu_tracked_refs_cnt == K_max_compilation_units_tracked_refs) {
                                                 // sanity check
+#ifdef DBG_ST
+                                                SLog(ansifmt::bold, ansifmt::color_red, "Hit limit", ansifmt::reset, "\n");
+#endif
                                                 break;
                                         }
                                 }
@@ -1152,7 +1169,7 @@ l200:
 
 #ifdef DBG_ST
                                         if constexpr (trace)
-                                                SLog("[", str_view32(path, len), "]\n");
+                                                SLog("File ", files_cnt, " [", str_view32(path, len), "]\n");
 #endif
 
                                         p += len + 1;
@@ -1163,6 +1180,10 @@ l200:
 
                                         if (files_cnt < K_max_compilation_unit_files) {
                                                 comp_unit_files[files_cnt++] = str_view32(path, len);
+                                        } else {
+#ifdef DBG_ST
+                                                SLog(ansifmt::bold, ansifmt::color_red, "Hit limit", ansifmt::reset, "\n");
+#endif
                                         }
                                 }
                                 ++p;
@@ -1355,9 +1376,20 @@ l200:
                                                                         [[maybe_unused]] const auto dir   = decode_LEB128(p);
                                                                         [[maybe_unused]] const auto modts = decode_LEB128(p);
                                                                         [[maybe_unused]] const auto size  = decode_LEB128(p);
+#ifdef DBG_ST
+									if constexpr(trace) {
+										SLog("Defining new file ", files_cnt, " [", name, "]\n");
+									}
+#endif
+
+
 
                                                                         if (files_cnt < K_max_compilation_unit_files) {
                                                                                 comp_unit_files[files_cnt++] = name;
+                                                                        } else {
+#ifdef DBG_ST
+                                                                                SLog(ansifmt::bold, ansifmt::color_red, "Hit limit", ansifmt::reset, "\n");
+#endif
                                                                         }
 
                                                                 } break;
@@ -1420,14 +1452,28 @@ l200:
 
                                         if (addr < cu_tracked_refs_addr_max) {
                                                 // should save us a few iterations
+
                                                 for (unsigned i{0}; i < cu_tracked_refs_cnt; ++i) {
                                                         const auto [pc, tracked_ref_ptr] = cu_tracked_refs[i];
 
+#if 0
+							if (addr < pc && tracked_ref_ptr->func_name.Search(_S("select"))) {
+                                                                if (addr > tracked_ref_ptr->src_ref.line_addr) {
+                                                                        SLog(ansifmt::bold, ansifmt::color_red, "Closest ", vm.regs.line, " ", vm.regs.file, " ", vm.regs.column, ansifmt::reset, " ", pc - addr, "\n");
+                                                                }
+                                                        }
+#endif
+
                                                         if (addr < pc && addr > tracked_ref_ptr->src_ref.line_addr) {
                                                                 tracked_ref_ptr->src_ref.line_addr = addr;
-                                                                tracked_ref_ptr->src_ref.line      = vm.regs.line;
-                                                                tracked_ref_ptr->src_ref.column    = vm.regs.column;
-                                                                tracked_ref_ptr->src_ref.filename  = vm.regs.file - 1 < files_cnt && vm.regs.file ? comp_unit_files[vm.regs.file - 1] : str_view32();
+
+                                                                if (vm.regs.line) {
+                                                                        tracked_ref_ptr->src_ref.line     = vm.regs.line;
+                                                                        tracked_ref_ptr->src_ref.column   = vm.regs.column;
+                                                                        tracked_ref_ptr->src_ref.filename = vm.regs.file - 1 < files_cnt && vm.regs.file
+                                                                                                                ? comp_unit_files[vm.regs.file - 1]
+                                                                                                                : str_view32();
+                                                                }
                                                         }
                                                 }
                                         }
