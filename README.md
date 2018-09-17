@@ -17,6 +17,10 @@ There are alternative means to walking the stack (I mean to provide one such fun
 know that if you plan to use the resolver in the context of a signal handlerr that may not allocate memory, backtrace() may be unsuitable for that purpose.
 Furthermore, `abi::__cxa_demangle()` also allocates memory; an alternative will be implemented soon.
 
+# Performance
+The resolver is designed to do as little as possible. It will access as few ELF files as possible in order to return as many stack frames requested, it will use `.debug_aranges` section information if available( you should compile with ` -gdwarf-aranges` so that the compiler will emit the respective DWARF section ), and it will group operations on a per ELF sections chunks in order to minimize CPU overhead.
+You should compile stacktraces.cpp with optimizations enabled (e.g with `-Ofast`). When compiled with optimizations enabled, and if `.debug_ranges` is present in the ELF file, you can expect sub-ms resolution times even if multiple compilation units are included in the ELF sections.
+
 
 ## Installing
 1. You need libdward include files for the various definitions/macros.
