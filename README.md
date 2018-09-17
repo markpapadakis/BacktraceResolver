@@ -82,6 +82,63 @@ int main(int argc, char *argv[]) {
 clang++ -std=c++1z example.cpp stacktraces.cpp -ldl
 ```
 
+
+Here is another example of how you could set exception handlers so that when an exception is raised and not caught, you will get a chance to display a message about it. 
+```cpp
+#include <cstdio>
+#include <cstdlib>
+#include <stdexcept>
+#include <stacktraces.h>
+#include <cxxabi.h>
+
+std::terminate_handler  orig_terminate;
+std::unexpected_handler orig_unexpected;
+
+void except_handler() {
+        int                 status;
+        const auto          tp        = abi::__cxa_current_exception_type();
+        auto                demangled = abi::__cxa_demangle(tp->name(), 0, 0, &status);
+        Switch::stack_frame frames[8];
+        uint8_t             stackframe_buf[32 * 1024];
+        const auto frames_cnt = Switch::stacktrace(frames, sizeof(frames) / sizeof(frames[0]), 
+		stackframe_buf, sizeof(stackframe_buf));
+
+	printf("Exception of type %s thrown\n", demangled);
+	std::free(demangled);
+
+	for (int i{0}; i < frames_cnt; ++i)  {
+		if (frames[i].func) {
+			printf("%d: at %.*s:%zu\n", 
+				i, static_cast<int>(frames[i].func.size()), frames[i].func.data(), frames[i].line);
+		} else {
+			printf("%d: at %.*s\n", 
+				i, static_cast<int>(frames[i].filename.size()), frames[i].filename.data());
+		}
+	}
+}
+
+void term_handler() {
+        except_handler();
+        orig_terminate();
+}
+
+void unexpected_handler() {
+        except_handler();
+        orig_unexpected();
+}
+
+int main(int argc, char *argv[]) {
+        orig_terminate  = std::set_terminate(term_handler);
+        orig_unexpected = std::set_unexpected(unexpected_handler);
+
+
+	// throw an exception - except_handler() will get to act on it
+	// before the default handler is invoked
+        throw std::range_error("Out of Range");
+        return 0;
+}
+```
+
 ## API
 There are currently two methods implemented in Switch namespace. The only difference between the overloaded `stacktrace()` is that one of the methods accepts an array of frames (that you should obtain from e.g `backtrace()`), whereas the other will invoke it for you internally. The arguments are self-explanatory, but you should make sure that storage provided is at least 32K in size(although depending on the depth of the stack, smaller buffers may suffice). You can use `alloca()` to allocate memory on the stack, if you are e.g in the execution context of a signal handler, or just allocate using e.g `uint8_t buf[128 * 1024];`, otherwise you may allocate on the heap using e.g `malloc()`.
 Note that the fewer frames you request (via `stack_frames_capacity`) the faster the resolution will be, because it will likely need to access fewer DSOs and lookup the required information in those files.
